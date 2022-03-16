@@ -1,9 +1,10 @@
-#  _    ____      ____
-# | |__|___ \ ___|___ \
-# | '_ \ __) / __| __) |
-# | |_) / __/ (__ / __/
-# |_.__/_____\___|_____|
+#  _    ____      ____          _   _
+# | |__|___ \ ___|___ \  __   _/ | / |
+# | '_ \ __) / __| __) | \ \ / / | | |
+# | |_) / __/ (__ / __/   \ V /| |_| |
+# |_.__/_____\___|_____|   \_/ |_(_)_|
 #
+# Blender2Camera2 v1.1
 # A Blender to Camera2 / Beat Saber Export Script
 #
 # Written by KandyWrong
@@ -89,50 +90,15 @@ def unregister():
 
 
 '''
-Helper Functions
-'''
-
-def calculate_fov(sensor_width, lens):
-
-    '''
-    https://b3d.interplanety.org/en/how-to-get-camera-fov-in-degrees-from-focal-length-in-mm/
-
-    Given some sensor size and focal length, calculate the camera field of view
-    (in degrees).
-    '''
-
-    radians = 2 * math.atan(sensor_width / (2 * lens))
-
-    return math.degrees(radians)
-
-
-def fix_rotation_offset(input):
-
-    '''
-    Fix Blender -> Unity rotation offset (AFTER quaternion drama is done).
-    '''
-
-    # Multiply by negative 1
-    output = input * -1.0
-
-    # If negative, add 360 degrees
-    if (0 > output):
-        output += math.radians(360)
-
-    return output
-
-
-'''
 Export Functions
 '''
 
 # https://blender.stackexchange.com/questions/58916/script-for-save-camera-position-to-file
 def export_main(context, filepath, setting_loop, setting_syncToSong):
 
-    # --------------------------------------------------------------------------
-    # Find Cameras
-
     '''
+    Find Cameras
+
     Iterate through every object that is presently loaded from the blend-file.
     Figure out which objects are cameras, and then pick out the cameras with
     the special prefix in their name.
@@ -151,9 +117,10 @@ def export_main(context, filepath, setting_loop, setting_syncToSong):
     print('Found ' + str(len(cameras)) + ' camera(s) to export')
 
     # --------------------------------------------------------------------------
-    # Collect Location, Rotation, & FOV
 
     '''
+    Collect Location, Rotation, & FOV
+
     For every frame in the scene, collect data from all the cameras that were
     found in the block above. All of these frames put together create the
     camera path, hence the name of the dictionary.
@@ -162,7 +129,23 @@ def export_main(context, filepath, setting_loop, setting_syncToSong):
     * The camera position (in Blender X,Y,Z)
     * The camera rotation (in Blender X,Y,Z)
     * The camera field of view (in degrees)
+
+    Info on rotation matrices can be found here:
+    https://medium.com/macoclock/augmented-reality-911-transform-matrix-4x4-af91a9718246
+    https://www.brainvoyager.com/bv/doc/UsersGuide/CoordsAndTransforms/SpatialTransformationMatrices.html
+
+    Oddly enough, StackOverflow disagrees with using the matrix equations shown
+    in the links above. Through a lot of experimentation I eventually settled
+    on the matrix shown below. I am not a math expert so I don't know if it is
+    truly correct. But it looks fine in the game, so I'm gonna use it for now.
     '''
+
+    # Define the rotation matrix.
+    mw_rotate_x = mathutils.Matrix()
+    mw_rotate_x[0] = 1,    0,      0,      0
+    mw_rotate_x[1] = 0,    0,      1,      0
+    mw_rotate_x[2] = 0,    1,      0,      0
+    mw_rotate_x[3] = 0,    0,      0,      1
 
     scene = context.scene
     frame = scene.frame_start
@@ -178,26 +161,80 @@ def export_main(context, filepath, setting_loop, setting_syncToSong):
         # For each camera...
         for camera in cameras:
 
+            '''
+            Translating from Blender -> Unity / Beat Saber
+
+            * Blender uses a Z-up, right-hand coordinate system
+            * Unity uses a Y-up, left-hand coordinate system
+
+            B2C2 converts between these coordinate systems by using a custom
+            4x4 rotation matrix (that I determined by a lot of trial and error)
+            and some post-processing to swap the axes into something that Unity
+            expects.
+            '''
+
             # Get the world position matrix of the current camera.
             mw = camera.matrix_world
 
+            print('-' * 10)
+            print('camera matrix_world')
+            print(mw)
+
+            '''
+            Use "@" to multiply the camera matrix with the rotation matrix.
+            The order of matrix multiplication here may not be correct. But
+            like I said up above, it all looks fine in the game, so I'm gonna
+            use it for now. Deeper investigation can wait until v1.2.
+            '''
+            mw_result = mw @ mw_rotate_x
+            print('mw_result')
+            print(mw_result)
+
+            # Convert the camera position matrix to Euler rotation values.
+            rot_out = mw_result.to_euler()
+
+            # Flip rotation values so the camera points the right way in Unity.
+            rx = rot_out[0]
+            ry = rot_out[2] * -1
+            rz = rot_out[1] * -1
+
+            '''
+            Field-of-View (FOV) Notes
+
+            The FOV value written in the Camera2 movement script is interpreted
+            as the vertical FOV in the game. B2C2 has no control over this, it
+            is just how Beat Saber / the Unity game engine works.
+
+            In the context of Blender: how the FOV is applied depends on the
+            aspect ratio of the final rendered image.
+
+                * For landscape images the FOV applies to the horizontal (width)
+                * For portrait images the FOV applies to the vertical (height)
+
+            How Unity handles FOV:
+            https://docs.unity3d.com/ScriptReference/Camera-fieldOfView.html
+
+            How Blender handles FOV:
+            https://blender.stackexchange.com/questions/23431/how-to-set-camera-horizontal-and-vertical-fov
+            https://docs.blender.org/api/current/bpy.types.Camera.html
+
+            Fortunately we don't have to worry about any of this mess, since
+            Blender automatically provides the vertical FOV value with the
+            camera data object.
+            '''
+
+            # Grab (vertical) field-of-view angle
+            fov = math.degrees(camera.data.angle_y)
+
+            print('FOV H:   ' + str(math.degrees(camera.data.angle_x)))
+            print('FOV V:   ' + str(math.degrees(camera.data.angle_y)))
+
+            '''
+            Final Camera Output
+            '''
+
             # Grab world X,Y,Z position
             (x,y,z) = mw.to_translation()
-
-            # Grab world X,Y,Z rotation
-            (rx,ry,rz) = mw.to_euler('XYZ')
-
-            # Convert Blender -> Unity rotation (absolute value only)
-            rot_base  = mathutils.Euler((math.radians(-90.0), 0.0, 0.0), 'XYZ').to_quaternion()
-            rot_out = (rot_base @ mw.to_quaternion()).to_euler()
-
-            # Final rotation output
-            rx = fix_rotation_offset(rot_out[0])
-            ry = fix_rotation_offset(rot_out[1])
-            rz = fix_rotation_offset(rot_out[2])
-
-            # Grab field-of-view angle
-            fov = calculate_fov(camera.data.sensor_width, camera.data.lens)
 
             # Pack camera data in a temporary dict
             temp = {}
@@ -228,8 +265,8 @@ def export_main(context, filepath, setting_loop, setting_syncToSong):
 
     movement = {}
 
-    # Calculate hold time
-    holdTime = 1 / scene.render.fps
+    # Calculate frame duration
+    duration = 1 / scene.render.fps
 
     for camera_name in paths:
 
@@ -258,7 +295,7 @@ def export_main(context, filepath, setting_loop, setting_syncToSong):
             temp['rotation']['z'] = round(math.degrees(frame['rot'][2]), 3)
 
             temp['FOV'] = round(frame['fov'], 3)
-            temp['holdTime'] = holdTime
+            temp['duration'] = duration
 
             movement[camera_name]['frames'].append(temp)
 
