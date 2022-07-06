@@ -1,10 +1,10 @@
-#  _    ____      ____          _   _
-# | |__|___ \ ___|___ \  __   _/ | / |
-# | '_ \ __) / __| __) | \ \ / / | | |
-# | |_) / __/ (__ / __/   \ V /| |_| |
-# |_.__/_____\___|_____|   \_/ |_(_)_|
+#  ____ ____   ____ ____          _   ____
+# | __ )___ \ / ___|___ \  __   _/ | |___ \
+# |  _ \ __) | |     __) | \ \ / / |   __) |
+# | |_) / __/| |___ / __/   \ V /| |_ / __/
+# |____/_____|\____|_____|   \_/ |_(_)_____|
 #
-# Blender2Camera2 v1.1
+# Blender2Camera2 v1.2
 # A Blender to Camera2 / Beat Saber Export Script
 #
 # Written by KandyWrong
@@ -21,7 +21,7 @@ import time
 # ExportHelper is a helper class, defines filename and
 # invoke() function which calls the file selector.
 from bpy_extras.io_utils import ExportHelper
-from bpy.props import StringProperty, BoolProperty, EnumProperty
+from bpy.props import StringProperty, BoolProperty
 from bpy.types import Operator
 
 '''
@@ -38,7 +38,7 @@ Classes
 
 class B2C2Export(Operator, ExportHelper):
     """Export camera path data to Beat Saber Camera2 format"""
-    bl_idname = "export_test.some_data"  # important since its how bpy.ops.import_test.some_data is constructed
+    bl_idname = "b2c2_export.export"
     bl_label = "Export"
 
     # ExportHelper mixin class uses this
@@ -54,18 +54,17 @@ class B2C2Export(Operator, ExportHelper):
     # to the class instance from the operator settings before calling.
     setting_loop: BoolProperty(
         name="Loop Script",
-        description="When false (default), the movement script will only play once and stay on the last keyframe.",
+        description="When checked, the movement script will loop if the song is longer than the script. Otherwise, the movement script will only play once and stop on the last keyframe",
         default=False,
     )
 
     setting_syncToSong: BoolProperty(
         name="Sync to Song",
-        description="When true, the movement script pauses when you pause the song and vice versa.",
+        description="When checked, the movement script pauses when you pause the song",
         default=True,
     )
 
     def execute(self, context):
-
         return export_main(context, self.filepath, self.setting_loop, self.setting_syncToSong)
 
 
@@ -259,7 +258,7 @@ def export_main(context, filepath, setting_loop, setting_syncToSong):
     few optional fields.
 
     The dictionary of paths created above needs to be converted into a new
-    list / dict based structure so exporting to the JSON file will be easier
+    list / dict based structure, so exporting to the JSON file will be easier
     in the next step.
     '''
 
@@ -324,5 +323,4 @@ def export_main(context, filepath, setting_loop, setting_syncToSong):
 if __name__ == "__main__":
     register()
 
-    # test call
-    bpy.ops.export_test.some_data('INVOKE_DEFAULT')
+    bpy.ops.b2c2_export.export('INVOKE_DEFAULT')
