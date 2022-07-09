@@ -1,5 +1,9 @@
 # Blender2Camera2
 
+## TLDR, I saw the Twitter post, how do I install the movement scripts?
+
+Look at the `releases` folder for instructions on what to copy / paste into your Beat Saber installation.
+
 ## What is this?
 
 Blender2Camera2 is a tool for creating custom [Camera2](https://github.com/kinsi55/CS_BeatSaber_Camera2) movement scripts in Blender.
@@ -21,9 +25,11 @@ If you're in a hurry then have a look at some screenshots from my LUVORATORRRRRY
 ## What's in here?
 
 * The Blender2Camera2 export python script, for use with Blender
-* A Blender template file (so you don't have to create your own)
-* Several Blender file and Camera2 movement script examples, including the file / script I used to create my [LUVORATORRRRRY! Beat Saber video](https://youtu.be/ISJmNQHka8I)
+* All of the Camera2 movement scripts I've created so far! Look for the under the `releases` folder
+* An empty B2C2 template file for use with Blender (so you don't have to create your own)
 
 ## How do I use it?
 
-Everything you need to know is at the [Blender2Camera2 docs site](https://kandywrong.com/b2c2/).
+An extensive guide is available at [Blender2Camera2 docs site](https://kandywrong.com/b2c2/).
+
+The project itself has some README files sprinkled around too.
