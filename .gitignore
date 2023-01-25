@@ -1,3 +1,4 @@
 *.blend1
 template/audio/*
 template/video/*
+**/logs
